@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         else if let out = ProcessInfo.processInfo.environment["DROPLET_PROBE"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 let ly = Online.lyrics(title: "Yesterday", artist: "The Beatles", duration: 125)
-                let cv = Online.cover(title: "Yesterday", artist: "The Beatles")
+                let cv = Online.cover(title: ProcessInfo.processInfo.environment["PROBE_TITLE"] ?? "Yesterday", artist: ProcessInfo.processInfo.environment["PROBE_ARTIST"] ?? "The Beatles")
                 print("lyrics lines:", ly?.count ?? -1, "synced:", ly?.first?.time != nil, "cover:", cv?.size ?? .zero)
                 let line = self.model.music.debugProbe() + " artwork=\(self.model.music.artwork != nil) title=\(!self.model.music.title.isEmpty)\n"
                 try? line.write(toFile: out, atomically: true, encoding: .utf8)

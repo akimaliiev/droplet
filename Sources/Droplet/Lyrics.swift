@@ -5,7 +5,7 @@ import AppKit
 //
 // Two things can't be read from the player itself: lyrics, and covers for some
 // streamed tracks. Both are looked up by song title and artist — lyrics from
-// lrclib.net, covers from Apple's iTunes Search. Nothing else is sent, and
+// lrclib.net, covers from Apple's iTunes Search and then Deezer. Nothing else is sent, and
 // "Online Lyrics & Covers" in the menu turns both off.
 
 enum Online {
@@ -33,21 +33,45 @@ enum Online {
         return result
     }
 
-    /// Blocking; call off the main thread.
+    private static func norm(_ s: String) -> String {
+        s.lowercased().folding(options: .diacriticInsensitive, locale: nil)
+            .replacingOccurrences(of: "ё", with: "е")
+            .components(separatedBy: " (").first ?? ""
+    }
+
+    private static func image(at string: String?) -> NSImage? {
+        guard let string, let url = URL(string: string), let data = try? Data(contentsOf: url) else { return nil }
+        return NSImage(data: data)
+    }
+
+    /// Blocking; call off the main thread. Tries Apple's catalogue, then Deezer's.
     static func cover(title: String, artist: String) -> NSImage? {
-        guard !title.isEmpty,
-              let data = get("https://itunes.apple.com/search", ["term": "\(title) \(artist)", "entity": "song", "limit": "8"]),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let results = json["results"] as? [[String: Any]], !results.isEmpty else { return nil }
-        func norm(_ s: String) -> String { s.lowercased().folding(options: .diacriticInsensitive, locale: nil) }
-        let best = results.first {
-            norm($0["trackName"] as? String ?? "") == norm(title) &&
-            norm($0["artistName"] as? String ?? "").contains(norm(artist).prefix(6))
-        } ?? results.first { norm($0["trackName"] as? String ?? "") == norm(title) }
-        guard let small = best?["artworkUrl100"] as? String,
-              let url = URL(string: small.replacingOccurrences(of: "100x100bb", with: "600x600bb")),
-              let img = try? Data(contentsOf: url) else { return nil }
-        return NSImage(data: img)
+        guard !title.isEmpty else { return nil }
+        let t = norm(title), a = norm(artist)
+        func artistMatches(_ other: String) -> Bool {
+            let o = norm(other)
+            return a.isEmpty || o.contains(a.prefix(5)) || a.contains(o.prefix(5))
+        }
+
+        if let data = get("https://itunes.apple.com/search", ["term": "\(title) \(artist)", "entity": "song", "limit": "8"]),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let results = json["results"] as? [[String: Any]],
+           let hit = results.first(where: { norm($0["trackName"] as? String ?? "") == t && artistMatches($0["artistName"] as? String ?? "") }),
+           let small = hit["artworkUrl100"] as? String,
+           let img = image(at: small.replacingOccurrences(of: "100x100bb", with: "600x600bb")) {
+            return img
+        }
+
+        if let data = get("https://api.deezer.com/search", ["q": "\(title) \(artist)", "limit": "8"]),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let results = json["data"] as? [[String: Any]] {
+            func name(_ r: [String: Any]) -> String { (r["artist"] as? [String: Any])?["name"] as? String ?? "" }
+            let hit = results.first { norm($0["title"] as? String ?? "") == t && artistMatches(name($0)) }
+                ?? results.first { artistMatches(name($0)) && (norm($0["title"] as? String ?? "").contains(t) || t.contains(norm($0["title"] as? String ?? "x"))) }
+            let album = hit?["album"] as? [String: Any]
+            if let img = image(at: (album?["cover_xl"] as? String) ?? (album?["cover_big"] as? String)) { return img }
+        }
+        return nil
     }
 
     /// Blocking; call off the main thread. Returns timed lines when available.
