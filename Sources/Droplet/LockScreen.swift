@@ -224,9 +224,8 @@ struct GlassBackground: NSViewRepresentable {
     func updateNSView(_ v: NSVisualEffectView, context: Context) {}
 }
 
-/// The song's cover, blurred, filling the lock screen. It fades out towards
-/// the bottom so the system's account picture and password field stay visible,
-/// and draws its own clock because it covers the system one.
+/// The song's cover, blurred, filling the whole lock screen. It draws its own
+/// clock because it covers the system one.
 struct LockBackdropView: View {
     @ObservedObject var music: MusicService
     @ObservedObject var state: LockState
@@ -241,10 +240,6 @@ struct LockBackdropView: View {
                         .frame(width: geo.size.width, height: geo.size.height)
                         .clipped()
                         .overlay(Color.black.opacity(0.22))
-                        .mask(LinearGradient(stops: [.init(color: .black, location: 0),
-                                                     .init(color: .black, location: 0.72),
-                                                     .init(color: .clear, location: 0.9)],
-                                             startPoint: .top, endPoint: .bottom))
                         .id(music.title + music.artist)
                         .transition(.opacity)
 

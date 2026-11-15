@@ -39,31 +39,37 @@ enum Online {
             .components(separatedBy: " (").first ?? ""
     }
 
-    private static func image(at string: String?) -> NSImage? {
-        guard let string, let url = URL(string: string), let data = try? Data(contentsOf: url) else { return nil }
-        return NSImage(data: data)
+    // Covers already fetched are kept on disk so a repeat play is instant.
+    private static let cacheDir: URL = {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        let dir = base.appendingPathComponent("local.droplet.island/covers", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+
+    private static func cacheFile(_ t: String, _ a: String) -> URL {
+        var h: UInt64 = 1469598103934665603
+        for b in "\(t)|\(a)".utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
+        return cacheDir.appendingPathComponent(String(h, radix: 16) + ".img")
     }
 
-    /// Blocking; call off the main thread. Tries Apple's catalogue, then Deezer's.
+    /// Blocking; call off the main thread. Deezer first (fast, wide catalogue), then Apple.
     static func cover(title: String, artist: String) -> NSImage? {
         guard !title.isEmpty else { return nil }
         let t = norm(title), a = norm(artist)
-        NSLog("Droplet cover lookup start t=[%@] a=[%@]", t, a)
+        let file = cacheFile(t, a)
+        if let data = try? Data(contentsOf: file), let img = NSImage(data: data) { return img }
+        func keep(_ string: String?) -> NSImage? {
+            guard let string, let url = URL(string: string), let data = try? Data(contentsOf: url),
+                  let img = NSImage(data: data) else { return nil }
+            try? data.write(to: file)
+            return img
+        }
         func artistMatches(_ other: String) -> Bool {
             let o = norm(other)
             return a.isEmpty || o.contains(a.prefix(5)) || a.contains(o.prefix(5))
         }
 
-        if let data = get("https://itunes.apple.com/search", ["term": "\(title) \(artist)", "entity": "song", "limit": "8"]),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let results = json["results"] as? [[String: Any]],
-           let hit = results.first(where: { norm($0["trackName"] as? String ?? "") == t && artistMatches($0["artistName"] as? String ?? "") }),
-           let small = hit["artworkUrl100"] as? String,
-           let img = image(at: small.replacingOccurrences(of: "100x100bb", with: "600x600bb")) {
-            return img
-        }
-
-        // Deezer: full query first, then title only (artist spellings vary).
         for query in ["\(title) \(artist)", title] {
             guard let data = get("https://api.deezer.com/search", ["q": query, "limit": "10"]),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -73,13 +79,21 @@ enum Online {
             let hit = results.first { track($0) == t && artistMatches(name($0)) }
                 ?? results.first { artistMatches(name($0)) && !track($0).isEmpty && (track($0).contains(t) || t.contains(track($0))) }
                 ?? results.first { track($0) == t && a.isEmpty }
-            NSLog("Droplet deezer results=%d hit=%d", results.count, hit == nil ? 0 : 1)
             let album = hit?["album"] as? [String: Any]
-            for key in ["cover_xl", "cover_big", "cover_medium"] {
-                if let img = image(at: album?[key] as? String) { return img }
+            // 500 px is plenty for the island and lock card, and downloads fastest.
+            for key in ["cover_big", "cover_xl", "cover_medium"] {
+                if let img = keep(album?[key] as? String) { return img }
             }
         }
-        NSLog("Droplet cover lookup: nothing found")
+
+        if let data = get("https://itunes.apple.com/search", ["term": "\(title) \(artist)", "entity": "song", "limit": "8"]),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let results = json["results"] as? [[String: Any]],
+           let hit = results.first(where: { norm($0["trackName"] as? String ?? "") == t && artistMatches($0["artistName"] as? String ?? "") }),
+           let small = hit["artworkUrl100"] as? String,
+           let img = keep(small.replacingOccurrences(of: "100x100bb", with: "600x600bb")) {
+            return img
+        }
         return nil
     }
 

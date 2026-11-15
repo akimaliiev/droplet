@@ -185,9 +185,9 @@ final class MusicService: ObservableObject {
                 }
             }
             let delays = [0.8, 2.0, 4.0]
-            // Streamed tracks often have no cover in the player at all, so go
-            // online from the second try instead of waiting out every retry.
-            if image == nil, attempt >= 1, Online.enabled {
+            // Streamed tracks usually have no cover in the player at all, so look
+            // online straight away (cached covers return instantly).
+            if image == nil, Online.enabled {
                 image = Online.cover(title: title, artist: artist)
             }
             let color = image.flatMap(Self.dominant) ?? .white
