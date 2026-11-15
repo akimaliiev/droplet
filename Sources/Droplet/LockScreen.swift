@@ -271,7 +271,7 @@ struct LockBackdropView: View {
                         .id(music.title + music.artist)
                         .transition(.opacity)
 
-                    // Big, soft lyrics drifting beside the player.
+                    // Big lyrics beside the player.
                     let side = (geo.size.width - 300) / 2
                     LockLyricsView(music: music, lyrics: lyrics)
                         .frame(width: side - 110, height: geo.size.height * 0.56, alignment: .leading)
@@ -303,7 +303,7 @@ struct LockBackdropView: View {
     }
 }
 
-/// The current lyric line, large, with its neighbours fading into a haze.
+/// The current lyric line, large and sharp, with its neighbours dimmed.
 /// Only shown when the lyrics carry timings.
 struct LockLyricsView: View {
     @ObservedObject var music: MusicService
@@ -319,9 +319,10 @@ struct LockLyricsView: View {
                         let d = i - cur
                         Text(lyrics.lines[i].text.isEmpty ? "···" : lyrics.lines[i].text)
                             .font(.system(size: d == 0 ? 48 : 36, weight: .bold))
-                            .foregroundStyle(.white.opacity(d == 0 ? 0.95 : abs(d) == 1 ? 0.42 : 0.22))
-                            .shadow(color: .white.opacity(d == 0 ? 0.6 : 0.25), radius: d == 0 ? 26 : 14)
-                            .blur(radius: d == 0 ? 0.6 : abs(d) == 1 ? 3 : 6)
+                            .foregroundStyle(.white.opacity(d == 0 ? 1 : abs(d) == 1 ? 0.45 : 0.24))
+                            // Crisp text: no blur or glow, just a faint dark shadow
+                            // so it stays readable on bright covers.
+                            .shadow(color: .black.opacity(0.28), radius: 6, y: 1)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
