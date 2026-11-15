@@ -27,9 +27,9 @@ A minimal Dynamic Island for the MacBook notch. Droplet sits exactly over the no
 
 ### Lock-screen player
 
-When music is playing and you lock the Mac, a clean artwork card and a small glass player with previous, play/pause and next appear under the lock-screen clock, like on iPhone. It stays until you unlock, so you can resume a paused track. Turn it off with **Lock Screen Player** in the menu.
+When music is playing and you lock the Mac, a clean artwork card and a small glass player with previous, play/pause and next appear under the lock-screen clock, like on iPhone. The song's cover, blurred, fills the lock screen behind it and fades out towards the bottom so the account picture and password field stay visible. Because the cover hides the system clock, Droplet draws its own. Everything stays until you unlock, so you can resume a paused track. Turn the player off with **Lock Screen Player**, or just the cover with **Lock Screen Cover Backdrop**, in the menu.
 
-<img src="docs/lock-screen.png" width="520" alt="Lock-screen player">
+![Lock-screen player](docs/lock-screen.png)
 
 ### Tabs
 
@@ -78,7 +78,7 @@ Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on H
 
 ## How the screenshots were made
 
-The images above are rendered by the app itself with sample data (`DROPLET_SNAPSHOT=/some/dir Droplet.app/Contents/MacOS/Droplet`) and placed on a gradient backdrop. The clock in the lock-screen image is drawn in for context.
+The images above are rendered by the app itself with sample data (`DROPLET_SNAPSHOT=/some/dir Droplet.app/Contents/MacOS/Droplet`) and placed on a gradient backdrop. In the lock-screen image the cover is a made-up sample and the account picture and password field are stand-ins.
 
 ## Project layout
 

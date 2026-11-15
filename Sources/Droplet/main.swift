@@ -70,6 +70,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return false
     }
 
+    /// Made-up cover used only for README screenshots.
+    static func sampleArt() -> NSImage {
+        NSImage(size: NSSize(width: 600, height: 600), flipped: false) { r in
+            NSGradient(colors: [NSColor(red: 0.02, green: 0.1, blue: 0.32, alpha: 1), NSColor(red: 0.1, green: 0.38, blue: 0.75, alpha: 1), NSColor(red: 0.95, green: 0.6, blue: 0.45, alpha: 1)])!.draw(in: r, angle: 90)
+            NSColor(red: 1, green: 0.92, blue: 0.8, alpha: 0.95).setFill()
+            NSBezierPath(ovalIn: NSRect(x: 380, y: 400, width: 110, height: 110)).fill()
+            for i in 0..<7 {
+                let y = CGFloat(40 + i * 42)
+                let p = NSBezierPath()
+                p.move(to: NSPoint(x: 0, y: y))
+                p.curve(to: NSPoint(x: 600, y: y), controlPoint1: NSPoint(x: 200, y: y + 46), controlPoint2: NSPoint(x: 400, y: y - 46))
+                p.lineWidth = 3
+                NSColor(white: 1, alpha: 0.10 + CGFloat(i) * 0.03).setStroke()
+                p.stroke()
+            }
+            return true
+        }
+    }
+
     func lockState(_ v: Bool) { lockPlayer.debugVisible(v) }
 
     // Debug: render each island state to PNG (DROPLET_SNAPSHOT=/some/dir).
@@ -87,13 +106,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             ("9-hud", { m.peek = false; m.show(HUD(icon: "speaker.wave.2.fill", title: "Volume", level: 0.6), for: 5) }),
             ("10-hud-device", { m.show(HUD(icon: "airpodspro", title: "Audio", detail: "Connected", subtitle: "AirPods Pro", tint: .cyan), for: 5) }),
             ("11-home-music", { m.music.artwork = nil; m.open(.home) }),
-            ("12-lock", { m.music.artwork = nil; m.music.duration = 222; m.close(); let w = self.lockPlayer.makeWindow(); self.lockPlayer.place(w); w.orderFrontRegardless(); print("skylight:", SkyLight.raiseAboveLockScreen(w)); self.lockState(true) }),
+            ("12-lock", { m.music.artwork = Self.sampleArt(); m.music.duration = 222; m.close(); let w = self.lockPlayer.makeWindow(); self.lockPlayer.place(w); w.orderFrontRegardless(); print("skylight:", SkyLight.raiseAboveLockScreen(w)); self.lockState(true) }),
+            ("13-lock-backdrop", { m.music.artwork = Self.sampleArt(); m.music.backdrop = MusicService.blurred(Self.sampleArt()); let b = self.lockPlayer.makeBackdrop(); b.alphaValue = 0; self.lockPlayer.placeBackdrop(b); b.orderFrontRegardless() }),
         ]
         for (i, step) in steps.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1 + Double(i) * 2.4) {
                 step.1()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
-                    guard let v = (step.0 == "12-lock" ? self.lockPlayer.makeWindow().contentView : self.panel.contentView), let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
+                    guard let v = (step.0 == "12-lock" ? self.lockPlayer.makeWindow().contentView : step.0 == "13-lock-backdrop" ? self.lockPlayer.makeBackdrop().contentView : self.panel.contentView), let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
                     v.cacheDisplay(in: v.bounds, to: rep)
                     try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "\(dir)/\(step.0).png"))
                     if i == steps.count - 1 { m.timer.reset(); NSApp.terminate(nil) }
@@ -202,6 +222,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(item("Open on Hover", #selector(toggleHover), on: model.openOnHover))
         menu.addItem(item("Brightness in Island", #selector(toggleBrightness), on: UserDefaults.standard.object(forKey: "brightnessHUD") as? Bool ?? true))
         menu.addItem(item("Lock Screen Player", #selector(toggleLock), on: lockPlayer.enabled))
+        menu.addItem(item("Lock Screen Cover Backdrop", #selector(toggleBackdrop), on: lockPlayer.backdropEnabled))
         menu.addItem(item("Launch at Login", #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled))
         menu.addItem(.separator())
         menu.addItem(item("Quit Droplet", #selector(quit), on: false, key: "q"))
@@ -229,6 +250,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func toggleLock(_ s: NSMenuItem) {
         lockPlayer.enabled.toggle()
         s.state = lockPlayer.enabled ? .on : .off
+    }
+
+    @objc func toggleBackdrop(_ s: NSMenuItem) {
+        lockPlayer.backdropEnabled.toggle()
+        s.state = lockPlayer.backdropEnabled ? .on : .off
     }
 
     @objc func toggleLogin(_ s: NSMenuItem) {

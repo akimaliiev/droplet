@@ -13,6 +13,8 @@ final class MusicService: ObservableObject {
     @Published var artist = ""
     @Published var isPlaying = false
     @Published var artwork: NSImage?
+    /// Pre-blurred copy of the cover for the lock-screen backdrop.
+    @Published var backdrop: NSImage?
     @Published var accent: Color = .white
     @Published var duration: Double = 0
     @Published var source: String?
@@ -133,12 +135,23 @@ final class MusicService: ObservableObject {
                 }
             }
             let color = image.flatMap(Self.dominant) ?? .white
+            let blurred = image.flatMap(Self.blurred)
             DispatchQueue.main.async {
                 guard self.artKey == key else { return }
                 self.artwork = image
+                self.backdrop = blurred
                 self.accent = color
             }
         }
+    }
+
+    static func blurred(_ image: NSImage) -> NSImage? {
+        guard let tiff = image.tiffRepresentation, let src = CIImage(data: tiff), src.extent.width > 0 else { return nil }
+        let scale = 480 / max(src.extent.width, src.extent.height)
+        let small = src.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        let out = small.clampedToExtent().applyingGaussianBlur(sigma: 22).cropped(to: small.extent)
+        guard let cg = CIContext().createCGImage(out, from: small.extent) else { return nil }
+        return NSImage(cgImage: cg, size: small.extent.size)
     }
 
     static func dominant(_ image: NSImage) -> Color? {

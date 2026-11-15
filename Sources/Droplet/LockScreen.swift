@@ -51,6 +51,7 @@ enum SkyLight {
 final class LockScreenPlayer {
     private let music: MusicService
     private var window: NSPanel?
+    private var backdrop: NSPanel?
     private var locked = false
     private var bag = Set<AnyCancellable>()
     private let state = LockState()
@@ -58,6 +59,12 @@ final class LockScreenPlayer {
     var enabled: Bool {
         get { UserDefaults.standard.object(forKey: "lockPlayer") as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: "lockPlayer"); refresh() }
+    }
+
+    /// Fill the lock screen behind the player with the song's cover.
+    var backdropEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "lockBackdrop") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "lockBackdrop"); state.backdrop = newValue }
     }
 
     init(music: MusicService) {
@@ -91,13 +98,37 @@ final class LockScreenPlayer {
         p.isMovable = false
         p.hidesOnDeactivate = false
         p.isFloatingPanel = true
-        p.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 1)
+        p.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 2)
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         let host = FirstMouseHost(rootView: LockPlayerView(music: music, state: state))
         host.safeAreaRegions = []
         p.contentView = host
         window = p
         return p
+    }
+
+    func makeBackdrop() -> NSPanel {
+        if let backdrop { return backdrop }
+        let p = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        p.isOpaque = false
+        p.backgroundColor = .clear
+        p.hasShadow = false
+        p.isMovable = false
+        p.hidesOnDeactivate = false
+        p.isFloatingPanel = true
+        p.ignoresMouseEvents = true   // never block the password field or Touch ID prompt
+        p.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 1)
+        p.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+        let host = NSHostingView(rootView: LockBackdropView(music: music, state: state))
+        host.safeAreaRegions = []
+        p.contentView = host
+        backdrop = p
+        return p
+    }
+
+    func placeBackdrop(_ p: NSPanel) {
+        guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main else { return }
+        p.setFrame(screen.frame, display: true)
     }
 
     func place(_ p: NSPanel) {
@@ -112,6 +143,11 @@ final class LockScreenPlayer {
     func debugVisible(_ v: Bool) { state.visible = v }
 
     private func show() {
+        state.backdrop = backdropEnabled
+        let b = makeBackdrop()
+        placeBackdrop(b)
+        b.orderFrontRegardless()
+        SkyLight.raiseAboveLockScreen(b)
         let p = makeWindow()
         place(p)
         p.orderFrontRegardless()
@@ -125,12 +161,14 @@ final class LockScreenPlayer {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             guard let self, !self.state.visible else { return }
             self.window?.orderOut(nil)
+            self.backdrop?.orderOut(nil)
         }
     }
 }
 
 final class LockState: ObservableObject {
     @Published var visible = false
+    @Published var backdrop = true
 }
 
 // MARK: - View
@@ -145,6 +183,55 @@ struct GlassBackground: NSViewRepresentable {
         return v
     }
     func updateNSView(_ v: NSVisualEffectView, context: Context) {}
+}
+
+/// The song's cover, blurred, filling the lock screen. It fades out towards
+/// the bottom so the system's account picture and password field stay visible,
+/// and draws its own clock because it covers the system one.
+struct LockBackdropView: View {
+    @ObservedObject var music: MusicService
+    @ObservedObject var state: LockState
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                if let img = music.backdrop, state.backdrop {
+                    Image(nsImage: img)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                        .overlay(Color.black.opacity(0.22))
+                        .mask(LinearGradient(stops: [.init(color: .black, location: 0),
+                                                     .init(color: .black, location: 0.72),
+                                                     .init(color: .clear, location: 0.9)],
+                                             startPoint: .top, endPoint: .bottom))
+                        .id(music.title + music.artist)
+                        .transition(.opacity)
+
+                    TimelineView(.periodic(from: .now, by: 5)) { c in
+                        VStack(spacing: -4) {
+                            Text(c.date, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
+                                .font(.system(size: 22, weight: .semibold))
+                            Text(c.date, format: .dateTime.hour().minute())
+                                .font(.system(size: 104, weight: .bold))
+                                .monospacedDigit()
+                        }
+                        .foregroundStyle(.white.opacity(0.82))
+                        .shadow(color: .black.opacity(0.2), radius: 10)
+                    }
+                    .padding(.top, geo.size.height * 0.07)
+                    .transition(.opacity)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+        }
+        .opacity(state.visible ? 1 : 0)
+        .animation(.easeInOut(duration: 0.5), value: state.visible)
+        .animation(.easeInOut(duration: 0.7), value: music.title)
+        .animation(.easeInOut(duration: 0.5), value: music.backdrop == nil)
+        .ignoresSafeArea()
+    }
 }
 
 struct LockPlayerView: View {
