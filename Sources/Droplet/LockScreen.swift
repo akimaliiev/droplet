@@ -80,6 +80,11 @@ final class LockScreenPlayer {
             self?.refresh()
         }
         music.$isPlaying.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.refresh() }.store(in: &bag)
+        // Build both windows up front so nothing is created at the moment of locking.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            _ = self?.makeBackdrop()
+            _ = self?.makeWindow()
+        }
     }
 
     private func refresh() {
@@ -142,6 +147,23 @@ final class LockScreenPlayer {
 
     func debugVisible(_ v: Bool) { state.visible = v }
 
+    /// Debug: run the locked path while unlocked and report what happened.
+    func debugLockTest() {
+        print("title empty:", music.title.isEmpty, "source:", music.source ?? "nil", "playing:", music.isPlaying)
+        print("artwork:", music.artwork != nil, "backdrop image:", music.backdrop != nil, "backdropEnabled:", backdropEnabled)
+        show()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            for (n, w) in [("backdrop", self.backdrop), ("player", self.window)] {
+                print(n, "visible:", w?.isVisible ?? false, "frame:", w?.frame ?? .zero, "num:", w?.windowNumber ?? -1, "alpha:", w?.alphaValue ?? -1)
+            }
+            let l = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+            for w in l where (w["kCGWindowOwnerName"] as? String) == "Droplet" {
+                print("onscreen:", w["kCGWindowNumber"] ?? "", w["kCGWindowLayer"] ?? "", w["kCGWindowBounds"] ?? "")
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
     private func show() {
         state.backdrop = backdropEnabled
         let b = makeBackdrop()
@@ -153,6 +175,17 @@ final class LockScreenPlayer {
         p.orderFrontRegardless()
         SkyLight.raiseAboveLockScreen(p)
         state.visible = true
+        // The lock screen can settle after the notification arrives; re-assert
+        // both windows a couple of times so neither is left behind it.
+        for delay in [0.6, 2.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, self.locked, self.state.visible else { return }
+                b.orderFrontRegardless()
+                SkyLight.raiseAboveLockScreen(b)
+                p.orderFrontRegardless()
+                SkyLight.raiseAboveLockScreen(p)
+            }
+        }
     }
 
     private func hide() {
@@ -195,8 +228,8 @@ struct LockBackdropView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                if let img = music.backdrop, state.backdrop {
-                    Image(nsImage: img)
+                if state.backdrop {
+                    Image(nsImage: music.backdrop ?? MusicService.placeholderBackdrop)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: geo.size.width, height: geo.size.height)

@@ -55,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupInput()
         setupSystem()
         if let dir = ProcessInfo.processInfo.environment["DROPLET_SNAPSHOT"] { runSnapshots(dir) }
+        else if ProcessInfo.processInfo.environment["DROPLET_LOCKTEST"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.lockPlayer.debugLockTest() }
+        }
         else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 self?.model.show(HUD(icon: "drop.fill", title: "Droplet", detail: "On", tint: .cyan), for: 1.6)

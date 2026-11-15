@@ -113,10 +113,10 @@ final class MusicService: ObservableObject {
         }
     }
 
-    private func fetchArtwork() {
+    private func fetchArtwork(retry: Bool = false) {
         guard let app = source else { return }
         let key = app + title + artist
-        guard key != artKey else { return }
+        guard retry || key != artKey else { return }
         artKey = key
         queue.async { [weak self] in
             guard let self else { return }
@@ -140,10 +140,25 @@ final class MusicService: ObservableObject {
                 guard self.artKey == key else { return }
                 self.artwork = image
                 self.backdrop = blurred
+                // Streamed tracks can report their cover a moment late; try once more.
+                if image == nil, !retry {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        if self.artKey == key { self.fetchArtwork(retry: true) }
+                    }
+                }
                 self.accent = color
             }
         }
     }
+
+    /// Used behind the lock-screen player when a track has no cover.
+    static let placeholderBackdrop: NSImage = {
+        let img = NSImage(size: NSSize(width: 480, height: 300), flipped: false) { r in
+            NSGradient(colors: [NSColor(red: 0.95, green: 0.3, blue: 0.5, alpha: 1), NSColor(red: 0.55, green: 0.3, blue: 0.9, alpha: 1), NSColor(red: 0.2, green: 0.45, blue: 0.95, alpha: 1)])!.draw(in: r, angle: -35)
+            return true
+        }
+        return blurred(img) ?? img
+    }()
 
     static func blurred(_ image: NSImage) -> NSImage? {
         guard let tiff = image.tiffRepresentation, let src = CIImage(data: tiff), src.extent.width > 0 else { return nil }
