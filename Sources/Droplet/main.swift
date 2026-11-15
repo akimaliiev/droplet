@@ -57,6 +57,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let dir = ProcessInfo.processInfo.environment["DROPLET_SNAPSHOT"] { runSnapshots(dir) }
         else if let out = ProcessInfo.processInfo.environment["DROPLET_PROBE"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                let ly = Online.lyrics(title: "Yesterday", artist: "The Beatles", duration: 125)
+                let cv = Online.cover(title: "Yesterday", artist: "The Beatles")
+                print("lyrics lines:", ly?.count ?? -1, "synced:", ly?.first?.time != nil, "cover:", cv?.size ?? .zero)
                 let line = self.model.music.debugProbe() + " artwork=\(self.model.music.artwork != nil) title=\(!self.model.music.title.isEmpty)\n"
                 try? line.write(toFile: out, atomically: true, encoding: .utf8)
                 NSApp.terminate(nil)
@@ -115,7 +118,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             ("8-peek", { m.showPeek() }),
             ("9-hud", { m.peek = false; m.show(HUD(icon: "speaker.wave.2.fill", title: "Volume", level: 0.6), for: 5) }),
             ("10-hud-device", { m.show(HUD(icon: "airpodspro", title: "Audio", detail: "Connected", subtitle: "AirPods Pro", tint: .cyan), for: 5) }),
-            ("11-home-music", { m.music.artwork = nil; m.open(.home) }),
+            ("11-home-music", { m.music.artwork = Self.sampleArt(); m.music.duration = 222; m.open(.home)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    m.lyrics.lines = ["Streetlights fold into the rain", "Radio low, the city hums", "Every mile a little lighter", "Midnight drive, we come undone", "Windows down, the cold air sings", "Nothing left we need to say"].enumerated().map { LyricLine(time: Double($0.offset) * 6, text: $0.element) }
+                    m.lyrics.status = .ready
+                } }),
             ("12-lock", { m.music.artwork = Self.sampleArt(); m.music.duration = 222; m.close(); let w = self.lockPlayer.makeWindow(); self.lockPlayer.place(w); w.orderFrontRegardless(); print("skylight:", SkyLight.raiseAboveLockScreen(w)); self.lockState(true) }),
             ("13-lock-backdrop", { m.music.artwork = Self.sampleArt(); m.music.backdrop = MusicService.blurred(Self.sampleArt()); let b = self.lockPlayer.makeBackdrop(); b.alphaValue = 0; self.lockPlayer.placeBackdrop(b); b.orderFrontRegardless() }),
         ]
@@ -233,6 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(item("Brightness in Island", #selector(toggleBrightness), on: UserDefaults.standard.object(forKey: "brightnessHUD") as? Bool ?? true))
         menu.addItem(item("Lock Screen Player", #selector(toggleLock), on: lockPlayer.enabled))
         menu.addItem(item("Lock Screen Cover Backdrop", #selector(toggleBackdrop), on: lockPlayer.backdropEnabled))
+        menu.addItem(item("Online Lyrics & Covers", #selector(toggleOnline), on: Online.enabled))
         menu.addItem(item("Launch at Login", #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled))
         menu.addItem(.separator())
         menu.addItem(item("Quit Droplet", #selector(quit), on: false, key: "q"))
@@ -265,6 +273,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func toggleBackdrop(_ s: NSMenuItem) {
         lockPlayer.backdropEnabled.toggle()
         s.state = lockPlayer.backdropEnabled ? .on : .off
+    }
+
+    @objc func toggleOnline(_ s: NSMenuItem) {
+        Online.enabled.toggle()
+        s.state = Online.enabled ? .on : .off
     }
 
     @objc func toggleLogin(_ s: NSMenuItem) {

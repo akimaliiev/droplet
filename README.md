@@ -49,7 +49,7 @@ When music is playing and you lock the Mac, a clean artwork card and a small gla
 
 ![Notes](docs/notes.png)
 
-**Home** also shows a week strip and battery, CPU and memory rings. The top bar has a keep-awake toggle and a pin that holds the island open.
+**Home** shows the current song with its cover and controls on the left, and its lyrics on the right. When timed lyrics are available the current line is highlighted and the list scrolls along with the song. The top bar has a keep-awake toggle and a pin that holds the island open.
 
 ## Install and run
 
@@ -65,11 +65,12 @@ This builds `Droplet.app`, copies it to `/Applications` and launches it. Use `./
 
 **Turning it on and off:** open Droplet from Launchpad, Spotlight or Finder to turn it on. Open it again while it is running to turn it off. The island briefly shows "On" or "Off" each time.
 
-Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on Hover**, **Brightness in Island**, **Lock Screen Player**, **Launch at Login** and **Quit**.
+Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on Hover**, **Brightness in Island**, **Lock Screen Player**, **Lock Screen Cover Backdrop**, **Online Lyrics & Covers**, **Launch at Login** and **Quit**.
 
 ## Permissions and limits
 
 - **Music control** works with Apple Music and Spotify. macOS asks once for permission to control them; without it the buttons do nothing and covers don't load. If you declined, the Home tab shows an **Open Settings** button, or go to System Settings → Privacy & Security → Automation → Droplet. Because the app is ad-hoc signed, macOS may ask again after each rebuild. Browser playback is not detected.
+- **Lyrics and some covers come from the internet.** Lyrics are looked up on lrclib.net, and when the player has no cover for a streamed track the cover is looked up through Apple's iTunes Search. Only the song title and artist are sent. Turn both off with **Online Lyrics & Covers** in the menu.
 - **Brightness** reads a private system framework, so it may stop working after a macOS update. Turn it off from the menu if it misbehaves.
 - **The lock-screen player** uses private window-server calls to draw above the lock screen. If a macOS update removes them, the player just won't appear.
 - The system's own volume overlay still appears alongside the island.
@@ -78,7 +79,7 @@ Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on H
 
 ## How the screenshots were made
 
-The images above are rendered by the app itself with sample data (`DROPLET_SNAPSHOT=/some/dir Droplet.app/Contents/MacOS/Droplet`) and placed on a gradient backdrop. In the lock-screen image the cover is a made-up sample and the account picture and password field are stand-ins.
+The images above are rendered by the app itself with sample data (`DROPLET_SNAPSHOT=/some/dir Droplet.app/Contents/MacOS/Droplet`) and placed on a gradient backdrop. The song, cover and lyric lines shown are made up. In the lock-screen image the account picture and password field are stand-ins.
 
 ## Project layout
 
@@ -86,10 +87,11 @@ The images above are rendered by the app itself with sample data (`DROPLET_SNAPS
 |---|---|
 | `Sources/Droplet/main.swift` | Window, mouse tracking, menu bar item |
 | `Sources/Droplet/Model.swift` | Island state, sizing, hover and gesture logic |
-| `Sources/Droplet/Services.swift` | Music, audio, brightness, power, stats, clipboard, shelf, timer |
+| `Sources/Droplet/Services.swift` | Music, audio, brightness, power, clipboard, shelf, timer |
 | `Sources/Droplet/IslandView.swift` | Notch shape, gooey bubble, collapsed states |
 | `Sources/Droplet/ExpandedView.swift` | The five tabs |
 | `Sources/Droplet/LockScreen.swift` | Lock-screen player |
+| `Sources/Droplet/Lyrics.swift` | Lyrics and online cover lookup |
 
 ## Licence
 

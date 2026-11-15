@@ -46,7 +46,7 @@ final class IslandModel: ObservableObject {
     let timer = TimerService()
     let shelf = ShelfStore()
     let clips = ClipboardService()
-    let stats = StatsService()
+    let lyrics = LyricsService()
     let awake = KeepAwake()
 
     private var hudTask: DispatchWorkItem?
@@ -154,14 +154,12 @@ final class IslandModel: ObservableObject {
         hud = nil
         peek = false
         expanded = true
-        stats.active = true
         music.refreshPosition()
         NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
     }
 
     func close() {
         expanded = false
-        stats.active = false
         if let p = panel, p.isKeyWindow {
             p.orderOut(nil)
             p.orderFrontRegardless()
@@ -218,7 +216,7 @@ final class IslandModel: ObservableObject {
         accX += e.scrollingDeltaX * s
         accY += e.scrollingDeltaY * s
         let inTopBar = NSEvent.mouseLocation.y > screenFrame.maxY - notch.height - 4
-        let freeTab = tab == .home || tab == .timer || inTopBar
+        let freeTab = tab == .timer || inTopBar
 
         if abs(accY) > 36, abs(accY) > abs(accX) * 1.5 {
             fired = true
@@ -226,7 +224,7 @@ final class IslandModel: ObservableObject {
             else if expanded, freeTab { pinned = false; close() }
         } else if abs(accX) > 46, abs(accX) > abs(accY) * 1.5 {
             if expanded {
-                guard freeTab || tab == .notes else { return }
+                guard freeTab || tab == .notes || tab == .home else { return }
                 fired = true
                 let all = IslandTab.allCases
                 let i = (tab.rawValue + (accX < 0 ? 1 : -1) + all.count) % all.count

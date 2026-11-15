@@ -90,11 +90,8 @@ struct HomeTab: View {
     var body: some View {
         HStack(spacing: 10) {
             MusicCard(music: model.music)
-            VStack(spacing: 10) {
-                DateCard()
-                StatsCard(stats: model.stats)
-            }
-            .frame(width: 214)
+            LyricsCard(music: model.music, lyrics: model.lyrics)
+                .frame(width: 250)
         }
     }
 }
@@ -104,7 +101,7 @@ struct MusicCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ArtThumb(music: music, size: 96, radius: 12)
+            ArtThumb(music: music, size: 88, radius: 12)
                 .scaleEffect(music.isPlaying ? 1 : 0.94)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: music.isPlaying)
 
@@ -187,77 +184,6 @@ struct MusicCard: View {
                 .background(Capsule().fill(Color.white.opacity(0.14)))
         }
         .buttonStyle(Bouncy())
-    }
-}
-
-struct DateCard: View {
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { c in
-            let cal = Calendar.current
-            let today = cal.startOfDay(for: c.date)
-            let start = cal.date(byAdding: .day, value: -3, to: today) ?? today
-            VStack(alignment: .leading, spacing: 6) {
-                Text(c.date, format: .dateTime.weekday(.wide).month(.wide).day())
-                    .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
-                HStack(spacing: 0) {
-                    ForEach(0..<7, id: \.self) { i in
-                        let d = cal.date(byAdding: .day, value: i, to: start) ?? today
-                        let isToday = i == 3
-                        VStack(spacing: 3) {
-                            Text(d, format: .dateTime.weekday(.narrow))
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.4))
-                            Text("\(cal.component(.day, from: d))")
-                                .font(.system(size: 11.5, weight: isToday ? .bold : .medium))
-                                .foregroundStyle(isToday ? .black : .white.opacity(0.7))
-                                .frame(width: 22, height: 22)
-                                .background(Circle().fill(isToday ? Color.white : .clear))
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .bubbleCard()
-        }
-    }
-}
-
-struct StatsCard: View {
-    @ObservedObject var stats: StatsService
-    var body: some View {
-        HStack(spacing: 0) {
-            if stats.power.hasBattery {
-                gauge(Double(stats.power.percent) / 100,
-                      stats.power.charging || stats.power.plugged ? "bolt.fill" : "battery.75percent",
-                      stats.power.percent <= 20 ? .red : .green)
-            }
-            gauge(stats.cpu, "cpu", .cyan)
-            gauge(stats.memory, "memorychip", .purple)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .bubbleCard()
-    }
-
-    private func gauge(_ v: Double, _ icon: String, _ color: Color) -> some View {
-        VStack(spacing: 4) {
-            ZStack {
-                Circle().stroke(color.opacity(0.18), lineWidth: 3)
-                Circle().trim(from: 0, to: max(0.01, v))
-                    .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 0.5, dampingFraction: 0.85), value: v)
-                Image(systemName: icon).font(.system(size: 11, weight: .bold)).foregroundStyle(color)
-            }
-            .frame(width: 36, height: 36)
-            Text("\(Int((v * 100).rounded()))%")
-                .font(.system(size: 10, weight: .semibold)).monospacedDigit()
-                .foregroundStyle(.white.opacity(0.6))
-                .contentTransition(.numericText())
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 

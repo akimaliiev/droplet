@@ -155,11 +155,15 @@ final class MusicService: ObservableObject {
         }
     }
 
-    private func fetchArtwork(retry: Bool = false) {
+    /// Loads the cover for the current track. The player is asked first (a few
+    /// times, since streamed tracks report their cover late); if it never has
+    /// one, the cover is looked up online by title and artist.
+    private func fetchArtwork(retry: Bool = false, attempt: Int = 0) {
         guard let app = source else { return }
         let key = app + title + artist
-        guard retry || key != artKey else { return }
+        guard retry || attempt > 0 || key != artKey else { return }
         artKey = key
+        let title = self.title, artist = self.artist
         queue.async { [weak self] in
             guard let self else { return }
             var image: NSImage?
@@ -169,26 +173,35 @@ final class MusicService: ObservableObject {
                     image = NSImage(data: data)
                 }
             } else {
-                for prop in ["raw data", "data"] {
-                    if let d = self.script("tell application \"Music\" to return \(prop) of artwork 1 of current track") {
-                        image = NSImage(data: d.data)
-                        if image != nil { break }
+                // Make sure the player has actually moved on to this track.
+                let now = self.script("tell application \"Music\" to return name of current track")?.stringValue
+                if now == nil || now == title {
+                    for prop in ["raw data", "data"] {
+                        if let d = self.script("tell application \"Music\" to return \(prop) of artwork 1 of current track") {
+                            image = NSImage(data: d.data)
+                            if image != nil { break }
+                        }
                     }
                 }
+            }
+            let delays = [0.8, 2.0, 4.0]
+            if image == nil, attempt >= delays.count, Online.enabled {
+                image = Online.cover(title: title, artist: artist)
             }
             let color = image.flatMap(Self.dominant) ?? .white
             let blurred = image.flatMap(Self.blurred)
             DispatchQueue.main.async {
                 guard self.artKey == key else { return }
-                self.artwork = image
-                self.backdrop = blurred
-                // Streamed tracks can report their cover a moment late; try once more.
-                if image == nil, !retry {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                        if self.artKey == key { self.fetchArtwork(retry: true) }
+                if image != nil || attempt == 0 {
+                    self.artwork = image
+                    self.backdrop = blurred
+                    self.accent = color
+                }
+                if image == nil, attempt < delays.count {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delays[attempt]) {
+                        if self.artKey == key { self.fetchArtwork(attempt: attempt + 1) }
                     }
                 }
-                self.accent = color
             }
         }
     }
@@ -399,64 +412,6 @@ struct Power: Equatable {
             NotificationCenter.default.post(name: .powerChanged, object: nil)
         }, nil)?.takeRetainedValue()
         if let src { CFRunLoopAddSource(CFRunLoopGetMain(), src, .defaultMode) }
-    }
-}
-
-// MARK: - System stats
-
-final class StatsService: ObservableObject {
-    @Published var cpu: Double = 0
-    @Published var memory: Double = 0
-    @Published var power = Power.read()
-    var active = false { didSet { if active { update() } } }
-    private var prev: (busy: Double, total: Double) = (0, 0)
-    private var timer: Timer?
-
-    init() {
-        _ = sampleCPU()
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            guard let self, self.active else { return }
-            self.update()
-        }
-        NotificationCenter.default.addObserver(forName: .powerChanged, object: nil, queue: .main) { [weak self] _ in
-            self?.power = Power.read()
-        }
-    }
-
-    private func update() {
-        cpu = sampleCPU()
-        memory = sampleMemory()
-        power = Power.read()
-    }
-
-    private func sampleCPU() -> Double {
-        var info = host_cpu_load_info()
-        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.size / MemoryLayout<integer_t>.size)
-        let r = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
-            }
-        }
-        guard r == KERN_SUCCESS else { return cpu }
-        let t = info.cpu_ticks
-        let busy = Double(t.0) + Double(t.1) + Double(t.3)
-        let total = busy + Double(t.2)
-        defer { prev = (busy, total) }
-        let dt = total - prev.total
-        return dt > 0 ? min(1, max(0, (busy - prev.busy) / dt)) : cpu
-    }
-
-    private func sampleMemory() -> Double {
-        var s = vm_statistics64()
-        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
-        let r = withUnsafeMutablePointer(to: &s) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
-            }
-        }
-        guard r == KERN_SUCCESS else { return memory }
-        let used = Double(s.active_count + s.wire_count + s.compressor_page_count) * Double(vm_kernel_page_size)
-        return min(1, used / Double(ProcessInfo.processInfo.physicalMemory))
     }
 }
 
