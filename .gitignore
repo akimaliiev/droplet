@@ -1,0 +1,4 @@
+.build/
+Droplet.app/
+.DS_Store
+*.xcodeproj
