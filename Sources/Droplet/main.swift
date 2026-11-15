@@ -55,6 +55,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupInput()
         setupSystem()
         if let dir = ProcessInfo.processInfo.environment["DROPLET_SNAPSHOT"] { runSnapshots(dir) }
+        else if let out = ProcessInfo.processInfo.environment["DROPLET_PROBE"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                let line = self.model.music.debugProbe() + " artwork=\(self.model.music.artwork != nil) title=\(!self.model.music.title.isEmpty)\n"
+                try? line.write(toFile: out, atomically: true, encoding: .utf8)
+                NSApp.terminate(nil)
+            }
+        }
         else if ProcessInfo.processInfo.environment["DROPLET_LOCKTEST"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.lockPlayer.debugLockTest() }
         }

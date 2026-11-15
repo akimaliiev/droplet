@@ -18,12 +18,45 @@ final class MusicService: ObservableObject {
     @Published var accent: Color = .white
     @Published var duration: Double = 0
     @Published var source: String?
+    /// True when macOS has refused Droplet permission to control the player.
+    @Published var needsPermission = false
+    private var permissionPoll: Timer?
 
     var onTrackChange: (() -> Void)?
     private var posBase: Double = 0
     private var posDate = Date()
     private let queue = DispatchQueue(label: "droplet.applescript")
     private var artKey = ""
+    /// 0 = last script succeeded; -1743 = the user has not allowed control of the player.
+    private(set) var lastError = 0
+
+    private func setNeedsPermission(_ v: Bool) {
+        guard v != needsPermission else { return }
+        needsPermission = v
+        permissionPoll?.invalidate()
+        permissionPoll = nil
+        if v {
+            // Keep checking so everything comes alive as soon as it is allowed.
+            permissionPoll = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+                guard let self, let app = self.source, self.running(app) else { return }
+                self.queue.async { _ = self.script("tell application \"\(app)\" to return player state as string") }
+            }
+        } else {
+            fetchArtwork(retry: true)
+            refreshPosition()
+        }
+    }
+
+    func openAutomationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    func debugProbe() -> String {
+        let r = script("tell application \"Music\" to return player state as string")
+        return "result=\(r?.stringValue ?? "nil") error=\(lastError)"
+    }
 
     var position: Double {
         let p = isPlaying ? posBase + Date().timeIntervalSince(posDate) : posBase
@@ -72,7 +105,16 @@ final class MusicService: ObservableObject {
 
     private func script(_ src: String) -> NSAppleEventDescriptor? {
         var err: NSDictionary?
-        return NSAppleScript(source: src)?.executeAndReturnError(&err)
+        let r = NSAppleScript(source: src)?.executeAndReturnError(&err)
+        if let err {
+            lastError = (err[NSAppleScript.errorNumber] as? Int) ?? -1
+            NSLog("Droplet AppleScript error %d: %@", lastError, (err[NSAppleScript.errorMessage] as? String) ?? "")
+        } else { lastError = 0 }
+        let denied = lastError == -1743
+        if denied || lastError == 0 {
+            DispatchQueue.main.async { self.setNeedsPermission(denied) }
+        }
+        return r
     }
 
     private func running(_ app: String) -> Bool {

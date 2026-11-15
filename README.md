@@ -69,7 +69,7 @@ Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on H
 
 ## Permissions and limits
 
-- **Music control** works with Apple Music and Spotify. macOS asks once for permission to control them. Browser playback is not detected.
+- **Music control** works with Apple Music and Spotify. macOS asks once for permission to control them; without it the buttons do nothing and covers don't load. If you declined, the Home tab shows an **Open Settings** button, or go to System Settings → Privacy & Security → Automation → Droplet. Because the app is ad-hoc signed, macOS may ask again after each rebuild. Browser playback is not detected.
 - **Brightness** reads a private system framework, so it may stop working after a macOS update. Turn it off from the menu if it misbehaves.
 - **The lock-screen player** uses private window-server calls to draw above the lock screen. If a macOS update removes them, the player just won't appear.
 - The system's own volume overlay still appears alongside the island.

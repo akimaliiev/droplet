@@ -108,7 +108,17 @@ struct MusicCard: View {
                 .scaleEffect(music.isPlaying ? 1 : 0.94)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: music.isPlaying)
 
-            if music.source == nil {
+            if music.needsPermission {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(music.title.isEmpty ? "Permission needed" : music.title)
+                        .font(.system(size: 15, weight: .semibold)).lineLimit(1)
+                    Text("Allow Droplet to control \(music.source ?? "Music") to use the buttons and show covers.")
+                        .font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
+                        .fixedSize(horizontal: false, vertical: true)
+                    pill("Open Settings") { music.openAutomationSettings() }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if music.source == nil {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Nothing playing").font(.system(size: 15, weight: .semibold))
                     Text("Start something and it lives here.").font(.system(size: 12)).foregroundStyle(.white.opacity(0.5))

@@ -177,9 +177,13 @@ final class LockScreenPlayer {
         state.visible = true
         // The lock screen can settle after the notification arrives; re-assert
         // both windows a couple of times so neither is left behind it.
-        for delay in [0.6, 2.0] {
+        for delay in [0.3, 1.0, 2.5] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 guard let self, self.locked, self.state.visible else { return }
+                self.state.tick += 1
+                b.contentView?.needsLayout = true
+                b.contentView?.needsDisplay = true
+                b.displayIfNeeded()
                 b.orderFrontRegardless()
                 SkyLight.raiseAboveLockScreen(b)
                 p.orderFrontRegardless()
@@ -202,6 +206,8 @@ final class LockScreenPlayer {
 final class LockState: ObservableObject {
     @Published var visible = false
     @Published var backdrop = true
+    /// Bumped after locking to force the lock-screen views to redraw.
+    @Published var tick = 0
 }
 
 // MARK: - View
@@ -259,8 +265,9 @@ struct LockBackdropView: View {
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
-        .opacity(state.visible ? 1 : 0)
-        .animation(.easeInOut(duration: 0.5), value: state.visible)
+        // No fade tied to the lock moment: an animation started while the
+        // screen is locking can stall at fully transparent.
+        .id(state.tick)
         .animation(.easeInOut(duration: 0.7), value: music.title)
         .animation(.easeInOut(duration: 0.5), value: music.backdrop == nil)
         .ignoresSafeArea()
