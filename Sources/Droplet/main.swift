@@ -55,6 +55,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupInput()
         setupSystem()
         if let dir = ProcessInfo.processInfo.environment["DROPLET_SNAPSHOT"] { runSnapshots(dir) }
+        else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.model.show(HUD(icon: "drop.fill", title: "Droplet", detail: "On", tint: .cyan), for: 1.6)
+            }
+        }
+    }
+
+    // Opening the app again while it is running switches it off.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        model.close()
+        model.show(HUD(icon: "drop.fill", title: "Droplet", detail: "Off", tint: .gray), for: 2)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { NSApp.terminate(nil) }
+        return false
     }
 
     func lockState(_ v: Bool) { lockPlayer.debugVisible(v) }
@@ -69,12 +82,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             ("4-notes", { m.tab = .notes }),
             ("5-timer", { m.timer.set(minutes: 5); m.timer.start(); m.tab = .timer }),
             ("6-compact-timer", { m.shelf.items = []; m.pinned = false; m.close() }),
-            ("7-music-bubble", { m.music.source = "Music"; m.music.title = "Midnight Drive"; m.music.artist = "The Tide Pools"; m.music.isPlaying = true }),
+            ("7-music-bubble", { m.music.source = "Music"; m.music.title = "Midnight Drive"; m.music.artist = "The Tide Pools"; m.music.isPlaying = true; m.music.artwork = nil; m.music.accent = .white }),
             ("8-peek", { m.showPeek() }),
             ("9-hud", { m.peek = false; m.show(HUD(icon: "speaker.wave.2.fill", title: "Volume", level: 0.6), for: 5) }),
             ("10-hud-device", { m.show(HUD(icon: "airpodspro", title: "Audio", detail: "Connected", subtitle: "AirPods Pro", tint: .cyan), for: 5) }),
-            ("11-home-music", { m.open(.home) }),
-            ("12-lock", { m.close(); let w = self.lockPlayer.makeWindow(); self.lockPlayer.place(w); w.orderFrontRegardless(); print("skylight:", SkyLight.raiseAboveLockScreen(w)); self.lockState(true) }),
+            ("11-home-music", { m.music.artwork = nil; m.open(.home) }),
+            ("12-lock", { m.music.artwork = nil; m.music.duration = 222; m.close(); let w = self.lockPlayer.makeWindow(); self.lockPlayer.place(w); w.orderFrontRegardless(); print("skylight:", SkyLight.raiseAboveLockScreen(w)); self.lockState(true) }),
         ]
         for (i, step) in steps.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1 + Double(i) * 2.4) {

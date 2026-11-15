@@ -178,6 +178,7 @@ struct IslandRoot: View {
 struct ArtThumb: View {
     @ObservedObject var music: MusicService
     var size: CGFloat
+    var radius: CGFloat? = nil
     var body: some View {
         Group {
             if let img = music.artwork {
@@ -188,7 +189,7 @@ struct ArtThumb: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: radius ?? size * 0.26, style: .continuous))
     }
 }
 

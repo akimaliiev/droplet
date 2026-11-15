@@ -1,3 +1,5 @@
+<img src="docs/icon.png" width="96" alt="Droplet icon">
+
 # Droplet
 
 A bubbly Dynamic Island for the MacBook notch. Droplet sits exactly over the notch and springs open into a small control centre: now playing, a file shelf, clipboard history, notes and a timer. It is a native Swift/SwiftUI app with no dependencies.
@@ -25,7 +27,7 @@ A bubbly Dynamic Island for the MacBook notch. Droplet sits exactly over the not
 
 ### Lock-screen player
 
-When music is playing and you lock the Mac, a large artwork card and a glass player with previous, play/pause and next appear under the lock-screen clock, like on iPhone. It stays until you unlock, so you can resume a paused track. Turn it off with **Lock Screen Player** in the menu.
+When music is playing and you lock the Mac, a clean artwork card and a small glass player with previous, play/pause and next appear under the lock-screen clock, like on iPhone. It stays until you unlock, so you can resume a paused track. Turn it off with **Lock Screen Player** in the menu.
 
 <img src="docs/lock-screen.png" width="520" alt="Lock-screen player">
 
@@ -56,10 +58,12 @@ Requires macOS 14 or later and the Xcode command line tools (`xcode-select --ins
 ```bash
 git clone https://github.com/akimaliiev/droplet.git
 cd droplet
-./build.sh run
+./build.sh install
 ```
 
-`./build.sh` produces `Droplet.app` in the repo folder; `run` also launches it. To keep it around, copy `Droplet.app` to `/Applications` and open it from there.
+This builds `Droplet.app`, copies it to `/Applications` and launches it. Use `./build.sh run` to build and launch from the repo folder without installing.
+
+**Turning it on and off:** open Droplet from Launchpad, Spotlight or Finder to turn it on. Open it again while it is running to turn it off. The island briefly shows "On" or "Off" each time.
 
 Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on Hover**, **Brightness in Island**, **Lock Screen Player**, **Launch at Login** and **Quit**.
 

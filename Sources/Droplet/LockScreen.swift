@@ -150,66 +150,61 @@ struct GlassBackground: NSViewRepresentable {
 struct LockPlayerView: View {
     @ObservedObject var music: MusicService
     @ObservedObject var state: LockState
+    private let width: CGFloat = 280
 
     var body: some View {
-        VStack(spacing: 18) {
-            ArtThumb(music: music, size: 300)
-                .shadow(color: .black.opacity(0.45), radius: 30, y: 16)
-                .scaleEffect(music.isPlaying ? 1 : 0.86)
-                .animation(.spring(response: 0.5, dampingFraction: 0.58), value: music.isPlaying)
+        VStack(spacing: 14) {
+            ArtThumb(music: music, size: width, radius: 18)
+                .shadow(color: .black.opacity(0.28), radius: 24, y: 12)
+                .scaleEffect(music.isPlaying ? 1 : 0.9)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: music.isPlaying)
                 .id(music.title + music.artist)
-                .transition(.scale(scale: 0.82).combined(with: .opacity))
+                .transition(.opacity)
 
-            VStack(spacing: 8) {
-                VStack(spacing: 1) {
-                    Text(music.title).font(.system(size: 14, weight: .semibold, design: .rounded)).lineLimit(1)
-                    Text(music.artist).font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.65)).lineLimit(1)
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(music.title).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                    Text(music.artist).font(.system(size: 13)).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
                 }
                 TimelineView(.periodic(from: .now, by: 0.5)) { _ in
                     let pos = music.position
-                    HStack(spacing: 8) {
-                        Text(fmt(pos))
+                    VStack(spacing: 5) {
                         GeometryReader { g in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color.white.opacity(0.22))
-                                Capsule().fill(Color.white)
-                                    .frame(width: max(5, g.size.width * (music.duration > 0 ? pos / music.duration : 0)))
+                                Capsule().fill(Color.white.opacity(0.2))
+                                Capsule().fill(Color.white.opacity(0.9))
+                                    .frame(width: max(3, g.size.width * (music.duration > 0 ? pos / music.duration : 0)))
                             }
                         }
-                        .frame(height: 5)
-                        Text("-" + fmt(max(0, music.duration - pos)))
+                        .frame(height: 3)
+                        HStack {
+                            Text(fmt(pos)); Spacer(); Text("-" + fmt(max(0, music.duration - pos)))
+                        }
+                        .font(.system(size: 10, weight: .medium)).monospacedDigit()
+                        .foregroundStyle(.white.opacity(0.5))
                     }
-                    .font(.system(size: 10, weight: .medium, design: .rounded)).monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.7))
                 }
-                HStack(spacing: 30) {
-                    ctl("backward.fill", 17) { music.previous() }
-                    ctl(music.isPlaying ? "pause.fill" : "play.fill", 24) { music.toggle() }
-                    ctl("forward.fill", 17) { music.next() }
+                HStack(spacing: 34) {
+                    ctl("backward.fill", 15) { music.previous() }
+                    ctl(music.isPlaying ? "pause.fill" : "play.fill", 21) { music.toggle() }
+                    ctl("forward.fill", 15) { music.next() }
                 }
+                .frame(maxWidth: .infinity)
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .frame(width: 300)
-            .background(
-                ZStack {
-                    GlassBackground()
-                    Color.white.opacity(0.08)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-            )
-            .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).strokeBorder(Color.white.opacity(0.22), lineWidth: 1))
-            .shadow(color: .black.opacity(0.3), radius: 18, y: 8)
+            .padding(.horizontal, 18)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+            .frame(width: width)
+            .background(GlassBackground().clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous)))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.top, 20)
-        .scaleEffect(state.visible ? 1 : 0.8, anchor: .top)
+        .scaleEffect(state.visible ? 1 : 0.94, anchor: .top)
         .opacity(state.visible ? 1 : 0)
-        .blur(radius: state.visible ? 0 : 12)
-        .animation(.spring(response: 0.5, dampingFraction: 0.66), value: state.visible)
-        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: music.title)
+        .animation(.spring(response: 0.45, dampingFraction: 0.82), value: state.visible)
+        .animation(.easeInOut(duration: 0.35), value: music.title)
         .preferredColorScheme(.dark)
         .ignoresSafeArea()
     }
@@ -219,11 +214,11 @@ struct LockPlayerView: View {
     private func ctl(_ icon: String, _ size: CGFloat, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: size, weight: .bold))
+                .font(.system(size: size, weight: .semibold))
                 .contentTransition(.symbolEffect(.replace))
-                .frame(width: 40, height: 34)
+                .frame(width: 38, height: 30)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(Bouncy(scale: 0.72))
+        .buttonStyle(Bouncy(scale: 0.85))
     }
 }
