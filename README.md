@@ -2,7 +2,7 @@
 
 # Droplet
 
-A bubbly Dynamic Island for the MacBook notch. Droplet sits exactly over the notch and springs open into a small control centre: now playing, a file shelf, clipboard history, notes and a timer. It is a native Swift/SwiftUI app with no dependencies.
+A minimal Dynamic Island for the MacBook notch. Droplet sits exactly over the notch and springs open into a small control centre: now playing, a file shelf, clipboard history, notes and a timer. It is a native Swift/SwiftUI app with no dependencies.
 
 ![Home tab](docs/home.png)
 
@@ -10,8 +10,8 @@ A bubbly Dynamic Island for the MacBook notch. Droplet sits exactly over the not
 
 ### The island
 
-- **Invisible until needed.** At rest it matches the notch pixel for pixel. Hover and it swells with a haptic tick; click and it squishes before opening.
-- **Springy everything.** Size changes use bouncy springs, and content blurs and scales in and out rather than cutting.
+- **Invisible until needed.** At rest it matches the notch pixel for pixel. Hover and it grows slightly with a haptic tick; click to open.
+- **Smooth motion.** Size changes use soft springs, and content fades and settles in rather than cutting.
 - **Gestures.** Swipe down to open, up to close, left/right to change tabs. With the island collapsed, swipe left/right to skip tracks.
 - **Open on hover** (optional) so you never have to click.
 
@@ -19,7 +19,7 @@ A bubbly Dynamic Island for the MacBook notch. Droplet sits exactly over the not
 
 | | |
 |---|---|
-| ![Music with timer bubble](docs/live-music-timer.png) | **Music + timer.** Artwork and animated bars sit either side of the notch. A second activity splits off as its own bubble with a gooey bridge. |
+| ![Music with timer bubble](docs/live-music-timer.png) | **Music + timer.** Artwork and animated bars sit either side of the notch. A second activity splits off as its own small bubble. |
 | ![Track peek](docs/live-track-peek.png) | **Track peek.** When the song changes, the island drops down briefly with the title and artist. |
 | ![Timer](docs/live-timer.png) | **Timer.** A progress ring and countdown while a timer runs. |
 | ![Volume](docs/hud-volume.png) | **Volume and brightness.** Level changes show up in the island. |

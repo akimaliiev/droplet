@@ -94,11 +94,11 @@ final class IslandModel: ObservableObject {
         let n = notch
         let h: CGFloat = hovering ? 1 : 0
         switch p {
-        case .expanded: return CGSize(width: 640, height: n.height + 196)
+        case .expanded: return CGSize(width: 620, height: n.height + 180)
         case .hud: return CGSize(width: n.width + 208, height: n.height + (hud?.subtitle != nil ? 30 : 0))
         case .peek: return CGSize(width: max(n.width + wing * 2, 330), height: n.height + 34)
-        case .compact: return CGSize(width: n.width + wing * 2 + h * 14, height: n.height + h * 6)
-        case .idle: return CGSize(width: n.width + h * 18, height: n.height + h * 8)
+        case .compact: return CGSize(width: n.width + wing * 2 + h * 8, height: n.height + h * 3)
+        case .idle: return CGSize(width: n.width + h * 10, height: n.height + h * 4)
         }
     }
 

@@ -29,11 +29,11 @@ struct NotchShape: Shape {
 }
 
 struct Bouncy: ButtonStyle {
-    var scale: CGFloat = 0.84
+    var scale: CGFloat = 0.92
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1)
-            .animation(.spring(response: 0.26, dampingFraction: 0.5), value: configuration.isPressed)
+            .animation(.spring(response: 0.25, dampingFraction: 0.75), value: configuration.isPressed)
     }
 }
 
@@ -41,9 +41,9 @@ struct BlurPop: ViewModifier {
     var active: Bool
     func body(content: Content) -> some View {
         content
-            .blur(radius: active ? 14 : 0)
+            .blur(radius: active ? 8 : 0)
             .opacity(active ? 0 : 1)
-            .scaleEffect(active ? 0.86 : 1, anchor: .top)
+            .scaleEffect(active ? 0.96 : 1, anchor: .top)
     }
 }
 
@@ -54,8 +54,8 @@ extension AnyTransition {
 }
 
 extension View {
-    func bubbleCard(_ radius: CGFloat = 22) -> some View {
-        background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.white.opacity(0.075)))
+    func bubbleCard(_ radius: CGFloat = 16) -> some View {
+        background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.white.opacity(0.06)))
     }
 }
 
@@ -120,8 +120,8 @@ struct IslandRoot: View {
     var body: some View {
         let p = model.presentation
         let size = model.size(p)
-        let tr: CGFloat = p == .expanded ? 14 : 7
-        let br: CGFloat = p == .expanded ? 36 : (p == .idle || p == .compact ? 11 : 20)
+        let tr: CGFloat = p == .expanded ? 10 : 7
+        let br: CGFloat = p == .expanded ? 26 : (p == .idle || p == .compact ? 11 : 16)
 
         ZStack(alignment: .top) {
             GooBubble(progress: model.showBubble ? 1 : 0, islandWidth: size.width, height: model.notch.height) {
@@ -132,7 +132,7 @@ struct IslandRoot: View {
                 NotchShape(top: tr, bottom: br)
                     .fill(Color.black)
                     .frame(width: size.width + tr * 2, height: size.height)
-                    .shadow(color: .black.opacity(p == .expanded ? 0.5 : 0), radius: 18, y: 8)
+                    .shadow(color: .black.opacity(p == .expanded ? 0.3 : 0), radius: 14, y: 6)
 
                 ZStack(alignment: .top) {
                     switch p {
@@ -151,7 +151,7 @@ struct IslandRoot: View {
                 .frame(width: size.width, height: size.height, alignment: .top)
                 .clipShape(NotchShape(top: 0, bottom: br))
             }
-            .scaleEffect(x: model.squish ? 1.06 : 1, y: model.squish ? 0.88 : 1, anchor: .top)
+            .scaleEffect(x: model.squish ? 1.02 : 1, y: model.squish ? 0.96 : 1, anchor: .top)
             .contentShape(Rectangle())
             .onTapGesture { if !model.expanded { model.tapOpen() } }
             .onDrop(of: [.fileURL], isTargeted: nil) { providers in
@@ -165,8 +165,8 @@ struct IslandRoot: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(model.expanded ? .spring(response: 0.46, dampingFraction: 0.64)
-                                  : .spring(response: 0.38, dampingFraction: 0.7),
+        .animation(model.expanded ? .spring(response: 0.42, dampingFraction: 0.8)
+                                  : .spring(response: 0.34, dampingFraction: 0.86),
                    value: AnimKey(size: size, p: p, bubble: model.showBubble, squish: model.squish))
         .preferredColorScheme(.dark)
         .ignoresSafeArea()
@@ -245,7 +245,7 @@ struct CompactView: View {
                     MusicBars(color: music.accent, playing: music.isPlaying)
                 } else {
                     Text(timer.text)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded)).monospacedDigit()
+                        .font(.system(size: 13, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(.orange)
                         .contentTransition(.numericText())
                 }
@@ -265,9 +265,9 @@ struct PeekView: View {
         VStack(spacing: 0) {
             CompactView(model: model, music: music, timer: timer)
             HStack(spacing: 6) {
-                Text(music.title).font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                Text(music.title).font(.system(size: 12.5, weight: .semibold))
                 if !music.artist.isEmpty {
-                    Text(music.artist).font(.system(size: 12.5, weight: .medium, design: .rounded)).foregroundStyle(.white.opacity(0.55))
+                    Text(music.artist).font(.system(size: 12.5, weight: .medium)).foregroundStyle(.white.opacity(0.55))
                 }
             }
             .lineLimit(1)
@@ -302,7 +302,7 @@ struct HUDView: View {
                     HUDIcon(name: hud.icon)
                         .foregroundStyle(hud.tint)
                         .frame(width: 22)
-                    Text(hud.title).font(.system(size: 12, weight: .semibold, design: .rounded)).lineLimit(1)
+                    Text(hud.title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
                 }
                 .frame(width: 96, alignment: .leading)
                 .padding(.leading, 8)
@@ -319,7 +319,7 @@ struct HUDView: View {
                         }
                         .frame(width: 74, height: 6)
                     } else if let d = hud.detail {
-                        Text(d).font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundStyle(hud.tint).lineLimit(1)
+                        Text(d).font(.system(size: 12, weight: .semibold)).foregroundStyle(hud.tint).lineLimit(1)
                     }
                 }
                 .frame(width: 88, alignment: .trailing)
@@ -327,7 +327,7 @@ struct HUDView: View {
             }
             .frame(height: notch.height)
             if let s = hud.subtitle {
-                Text(s).font(.system(size: 12.5, weight: .semibold, design: .rounded)).lineLimit(1)
+                Text(s).font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
                     .padding(.horizontal, 16).frame(height: 24)
             }
         }

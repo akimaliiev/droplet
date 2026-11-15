@@ -27,7 +27,7 @@ struct ExpandedView: View {
             .padding(.top, 8)
             .padding(.bottom, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.spring(response: 0.36, dampingFraction: 0.72), value: model.tab)
+            .animation(.spring(response: 0.32, dampingFraction: 0.88), value: model.tab)
         }
     }
 
@@ -36,7 +36,7 @@ struct ExpandedView: View {
             HStack(spacing: 2) {
                 ForEach(IslandTab.allCases, id: \.self) { t in
                     Button {
-                        withAnimation(.spring(response: 0.34, dampingFraction: 0.62)) { model.tab = t }
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { model.tab = t }
                     } label: {
                         Image(systemName: t.icon)
                             .font(.system(size: 12, weight: .semibold))
@@ -57,7 +57,7 @@ struct ExpandedView: View {
             HStack(spacing: 4) {
                 TimelineView(.periodic(from: .now, by: 20)) { c in
                     Text(c.date, format: .dateTime.hour().minute())
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 .padding(.trailing, 4)
@@ -104,15 +104,14 @@ struct MusicCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ArtThumb(music: music, size: 104)
-                .shadow(color: music.accent.opacity(music.isPlaying ? 0.55 : 0), radius: 16)
-                .scaleEffect(music.isPlaying ? 1 : 0.88)
-                .animation(.spring(response: 0.45, dampingFraction: 0.55), value: music.isPlaying)
+            ArtThumb(music: music, size: 96, radius: 12)
+                .scaleEffect(music.isPlaying ? 1 : 0.94)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: music.isPlaying)
 
             if music.source == nil {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Nothing playing").font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Text("Start something and it lives here.").font(.system(size: 12, design: .rounded)).foregroundStyle(.white.opacity(0.5))
+                    Text("Nothing playing").font(.system(size: 15, weight: .semibold))
+                    Text("Start something and it lives here.").font(.system(size: 12)).foregroundStyle(.white.opacity(0.5))
                     HStack(spacing: 8) {
                         pill("Music") { music.launch("com.apple.Music") }
                         pill("Spotify") { music.launch("com.spotify.client") }
@@ -121,8 +120,8 @@ struct MusicCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(music.title).font(.system(size: 15, weight: .semibold, design: .rounded)).lineLimit(1)
-                    Text(music.artist).font(.system(size: 12.5, weight: .medium, design: .rounded)).foregroundStyle(.white.opacity(0.55)).lineLimit(1)
+                    Text(music.title).font(.system(size: 15, weight: .semibold)).lineLimit(1)
+                    Text(music.artist).font(.system(size: 12.5, weight: .medium)).foregroundStyle(.white.opacity(0.55)).lineLimit(1)
                     Spacer(minLength: 4)
                     TimelineView(.periodic(from: .now, by: 0.5)) { _ in
                         let pos = music.position
@@ -130,21 +129,21 @@ struct MusicCard: View {
                             GeometryReader { g in
                                 ZStack(alignment: .leading) {
                                     Capsule().fill(Color.white.opacity(0.15))
-                                    Capsule().fill(music.accent)
-                                        .frame(width: max(5, g.size.width * (music.duration > 0 ? pos / music.duration : 0)))
+                                    Capsule().fill(Color.white.opacity(0.9))
+                                        .frame(width: max(3, g.size.width * (music.duration > 0 ? pos / music.duration : 0)))
                                 }
                             }
-                            .frame(height: 5)
+                            .frame(height: 3)
                             HStack {
                                 Text(fmt(pos)); Spacer(); Text(fmt(music.duration))
                             }
-                            .font(.system(size: 10, weight: .medium, design: .rounded)).monospacedDigit()
+                            .font(.system(size: 10, weight: .medium)).monospacedDigit()
                             .foregroundStyle(.white.opacity(0.45))
                         }
                     }
                     HStack(spacing: 22) {
                         ctl("backward.fill", 15) { music.previous() }
-                        ctl(music.isPlaying ? "pause.fill" : "play.fill", 22) { music.toggle() }
+                        ctl(music.isPlaying ? "pause.fill" : "play.fill", 20) { music.toggle() }
                         ctl("forward.fill", 15) { music.next() }
                     }
                     .frame(maxWidth: .infinity)
@@ -155,7 +154,7 @@ struct MusicCard: View {
         }
         .padding(14)
         .frame(maxHeight: .infinity)
-        .bubbleCard(26)
+        .bubbleCard(18)
     }
 
     private func fmt(_ t: Double) -> String { String(format: "%d:%02d", Int(t) / 60, Int(t) % 60) }
@@ -163,17 +162,17 @@ struct MusicCard: View {
     private func ctl(_ icon: String, _ size: CGFloat, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: size, weight: .bold))
+                .font(.system(size: size, weight: .semibold))
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 34, height: 30)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(Bouncy(scale: 0.72))
+        .buttonStyle(Bouncy(scale: 0.86))
     }
 
     private func pill(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(.system(size: 12, weight: .semibold, design: .rounded))
+            Text(title).font(.system(size: 12, weight: .semibold))
                 .padding(.horizontal, 12).padding(.vertical, 6)
                 .background(Capsule().fill(Color.white.opacity(0.14)))
         }
@@ -189,7 +188,7 @@ struct DateCard: View {
             let start = cal.date(byAdding: .day, value: -3, to: today) ?? today
             VStack(alignment: .leading, spacing: 6) {
                 Text(c.date, format: .dateTime.weekday(.wide).month(.wide).day())
-                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
                 HStack(spacing: 0) {
                     ForEach(0..<7, id: \.self) { i in
@@ -197,10 +196,10 @@ struct DateCard: View {
                         let isToday = i == 3
                         VStack(spacing: 3) {
                             Text(d, format: .dateTime.weekday(.narrow))
-                                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                                .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.4))
                             Text("\(cal.component(.day, from: d))")
-                                .font(.system(size: 11.5, weight: isToday ? .bold : .medium, design: .rounded))
+                                .font(.system(size: 11.5, weight: isToday ? .bold : .medium))
                                 .foregroundStyle(isToday ? .black : .white.opacity(0.7))
                                 .frame(width: 22, height: 22)
                                 .background(Circle().fill(isToday ? Color.white : .clear))
@@ -235,16 +234,16 @@ struct StatsCard: View {
     private func gauge(_ v: Double, _ icon: String, _ color: Color) -> some View {
         VStack(spacing: 4) {
             ZStack {
-                Circle().stroke(color.opacity(0.2), lineWidth: 4)
+                Circle().stroke(color.opacity(0.18), lineWidth: 3)
                 Circle().trim(from: 0, to: max(0.01, v))
-                    .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.6), value: v)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.85), value: v)
                 Image(systemName: icon).font(.system(size: 11, weight: .bold)).foregroundStyle(color)
             }
             .frame(width: 36, height: 36)
             Text("\(Int((v * 100).rounded()))%")
-                .font(.system(size: 10, weight: .semibold, design: .rounded)).monospacedDigit()
+                .font(.system(size: 10, weight: .semibold)).monospacedDigit()
                 .foregroundStyle(.white.opacity(0.6))
                 .contentTransition(.numericText())
         }
@@ -266,7 +265,7 @@ struct ShelfTab: View {
                         Image(systemName: "tray.and.arrow.down.fill").font(.system(size: 26, weight: .semibold))
                             .symbolEffect(.bounce, value: targeted)
                         Text("Drag files onto the notch to park them here")
-                            .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                            .font(.system(size: 12.5, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(targeted ? 0.9 : 0.45))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -286,8 +285,8 @@ struct ShelfTab: View {
                 }
             }
             .background(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .strokeBorder(Color.white.opacity(targeted ? 0.7 : 0.16), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.white.opacity(targeted ? 0.6 : 0.12), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
             )
             .scaleEffect(targeted ? 1.015 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.5), value: targeted)
@@ -308,7 +307,7 @@ struct ShelfTab: View {
         Button(action: action) {
             VStack(spacing: 5) {
                 Image(systemName: icon).font(.system(size: 17, weight: .semibold)).foregroundStyle(color)
-                Text(title).font(.system(size: 11, weight: .semibold, design: .rounded))
+                Text(title).font(.system(size: 11, weight: .semibold))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .bubbleCard()
@@ -328,12 +327,12 @@ struct ShelfItem: View {
             Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
                 .resizable().frame(width: 52, height: 52)
             Text(url.lastPathComponent)
-                .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                .font(.system(size: 10.5, weight: .medium))
                 .lineLimit(2).multilineTextAlignment(.center)
                 .frame(width: 80)
         }
         .padding(8)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(hover ? 0.13 : 0.06)))
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(hover ? 0.1 : 0.05)))
         .overlay(alignment: .topTrailing) {
             if hover {
                 Button(action: remove) {
@@ -342,8 +341,8 @@ struct ShelfItem: View {
                 .buttonStyle(Bouncy()).offset(x: 4, y: -4).transition(.scale.combined(with: .opacity))
             }
         }
-        .scaleEffect(hover ? 1.05 : 1)
-        .animation(.spring(response: 0.28, dampingFraction: 0.55), value: hover)
+        .scaleEffect(hover ? 1.02 : 1)
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: hover)
         .onHover { hover = $0 }
         .onTapGesture(count: 2) { NSWorkspace.shared.open(url) }
         .onDrag { NSItemProvider(object: url as NSURL) }
@@ -361,11 +360,11 @@ struct ClipsTab: View {
         if clips.items.isEmpty {
             VStack(spacing: 8) {
                 Image(systemName: "doc.on.clipboard").font(.system(size: 24, weight: .semibold))
-                Text("Things you copy show up here").font(.system(size: 12.5, weight: .medium, design: .rounded))
+                Text("Things you copy show up here").font(.system(size: 12.5, weight: .medium))
             }
             .foregroundStyle(.white.opacity(0.45))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .bubbleCard(26)
+            .bubbleCard(18)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -377,7 +376,7 @@ struct ClipsTab: View {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { if copied == s { copied = nil } }
                         } label: {
                             Text(s)
-                                .font(.system(size: 11.5, design: s.contains("\n") || s.contains("{") ? .monospaced : .rounded))
+                                .font(.system(size: 11.5, design: s.contains("\n") || s.contains("{") ? .monospaced : .default))
                                 .foregroundStyle(.white.opacity(0.85))
                                 .multilineTextAlignment(.leading)
                                 .frame(width: 138, alignment: .topLeading)
@@ -386,9 +385,9 @@ struct ClipsTab: View {
                                 .bubbleCard()
                                 .overlay {
                                     if copied == s {
-                                        RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.green.opacity(0.85))
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.green.opacity(0.85))
                                             .overlay(Label("Copied", systemImage: "checkmark.circle.fill")
-                                                .font(.system(size: 13, weight: .bold, design: .rounded)))
+                                                .font(.system(size: 13, weight: .bold)))
                                             .transition(.scale(scale: 0.7).combined(with: .opacity))
                                     }
                                 }
@@ -399,7 +398,7 @@ struct ClipsTab: View {
                     }
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 }
@@ -411,17 +410,17 @@ struct NotesTab: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             TextEditor(text: $notes)
-                .font(.system(size: 13, design: .rounded))
+                .font(.system(size: 13))
                 .scrollContentBackground(.hidden)
                 .padding(10)
             if notes.isEmpty {
                 Text("Jot something down…")
-                    .font(.system(size: 13, design: .rounded)).foregroundStyle(.white.opacity(0.3))
+                    .font(.system(size: 13)).foregroundStyle(.white.opacity(0.3))
                     .padding(.horizontal, 15).padding(.vertical, 10)
                     .allowsHitTesting(false)
             }
         }
-        .bubbleCard(26)
+        .bubbleCard(18)
     }
 }
 
@@ -433,22 +432,22 @@ struct TimerTab: View {
     var body: some View {
         HStack(spacing: 10) {
             ZStack {
-                TimerRing(timer: timer, line: 8).padding(14)
+                TimerRing(timer: timer, line: 4).padding(16)
                 Text(timer.text)
-                    .font(.system(size: 26, weight: .bold, design: .rounded)).monospacedDigit()
+                    .font(.system(size: 26, weight: .medium)).monospacedDigit()
                     .contentTransition(.numericText())
                     .animation(.snappy, value: timer.text)
             }
             .frame(width: 168)
             .frame(maxHeight: .infinity)
-            .bubbleCard(26)
+            .bubbleCard(18)
 
             VStack(spacing: 10) {
                 HStack(spacing: 8) {
                     ForEach([1, 5, 15, 25, 45, 60], id: \.self) { m in
                         Button { timer.set(minutes: Double(m)); timer.start() } label: {
                             Text("\(m)m")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .font(.system(size: 13, weight: .semibold))
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .background(Capsule().fill(Color.white.opacity(timer.total == Double(m) * 60 ? 0.2 : 0.075)))
                                 .contentShape(Rectangle())
@@ -457,7 +456,7 @@ struct TimerTab: View {
                     }
                 }
                 HStack(spacing: 8) {
-                    big(timer.running ? "Pause" : "Start", timer.running ? "pause.fill" : "play.fill", .orange) {
+                    big(timer.running ? "Pause" : "Start", timer.running ? "pause.fill" : "play.fill", .white, text: .black) {
                         timer.running ? timer.stop() : timer.start()
                     }
                     big("Reset", "arrow.counterclockwise", .white.opacity(0.14)) { timer.reset() }
@@ -466,12 +465,13 @@ struct TimerTab: View {
         }
     }
 
-    private func big(_ title: String, _ icon: String, _ color: Color, _ action: @escaping () -> Void) -> some View {
+    private func big(_ title: String, _ icon: String, _ color: Color, text: Color = .white, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: icon)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(text)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(color))
+                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(color))
                 .contentShape(Rectangle())
         }
         .buttonStyle(Bouncy(scale: 0.92))
