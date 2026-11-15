@@ -66,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         else if ProcessInfo.processInfo.environment["DROPLET_LOCKTEST"] != nil {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.lockPlayer.debugLockTest() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Double(ProcessInfo.processInfo.environment["DROPLET_LOCKTEST"] ?? "") ?? 4)) { self.lockPlayer.debugLockTest() }
         }
         else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in

@@ -48,6 +48,7 @@ enum Online {
     static func cover(title: String, artist: String) -> NSImage? {
         guard !title.isEmpty else { return nil }
         let t = norm(title), a = norm(artist)
+        NSLog("Droplet cover lookup start t=[%@] a=[%@]", t, a)
         func artistMatches(_ other: String) -> Bool {
             let o = norm(other)
             return a.isEmpty || o.contains(a.prefix(5)) || a.contains(o.prefix(5))
@@ -62,15 +63,23 @@ enum Online {
             return img
         }
 
-        if let data = get("https://api.deezer.com/search", ["q": "\(title) \(artist)", "limit": "8"]),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let results = json["data"] as? [[String: Any]] {
+        // Deezer: full query first, then title only (artist spellings vary).
+        for query in ["\(title) \(artist)", title] {
+            guard let data = get("https://api.deezer.com/search", ["q": query, "limit": "10"]),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let results = json["data"] as? [[String: Any]], !results.isEmpty else { continue }
             func name(_ r: [String: Any]) -> String { (r["artist"] as? [String: Any])?["name"] as? String ?? "" }
-            let hit = results.first { norm($0["title"] as? String ?? "") == t && artistMatches(name($0)) }
-                ?? results.first { artistMatches(name($0)) && (norm($0["title"] as? String ?? "").contains(t) || t.contains(norm($0["title"] as? String ?? "x"))) }
+            func track(_ r: [String: Any]) -> String { norm(r["title"] as? String ?? "") }
+            let hit = results.first { track($0) == t && artistMatches(name($0)) }
+                ?? results.first { artistMatches(name($0)) && !track($0).isEmpty && (track($0).contains(t) || t.contains(track($0))) }
+                ?? results.first { track($0) == t && a.isEmpty }
+            NSLog("Droplet deezer results=%d hit=%d", results.count, hit == nil ? 0 : 1)
             let album = hit?["album"] as? [String: Any]
-            if let img = image(at: (album?["cover_xl"] as? String) ?? (album?["cover_big"] as? String)) { return img }
+            for key in ["cover_xl", "cover_big", "cover_medium"] {
+                if let img = image(at: album?[key] as? String) { return img }
+            }
         }
+        NSLog("Droplet cover lookup: nothing found")
         return nil
     }
 
