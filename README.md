@@ -23,6 +23,12 @@ A bubbly Dynamic Island for the MacBook notch. Droplet sits exactly over the not
 | ![Volume](docs/hud-volume.png) | **Volume and brightness.** Level changes show up in the island. |
 | ![Device connected](docs/hud-device.png) | **Audio devices and power.** AirPods or speakers connecting, and the charger being plugged or unplugged. |
 
+### Lock-screen player
+
+When music is playing and you lock the Mac, a large artwork card and a glass player with previous, play/pause and next appear under the lock-screen clock, like on iPhone. It stays until you unlock, so you can resume a paused track. Turn it off with **Lock Screen Player** in the menu.
+
+<img src="docs/lock-screen.png" width="520" alt="Lock-screen player">
+
 ### Tabs
 
 **Shelf** — drag files onto the notch to park them, drag them back out anywhere, or AirDrop the lot.
@@ -55,19 +61,20 @@ cd droplet
 
 `./build.sh` produces `Droplet.app` in the repo folder; `run` also launches it. To keep it around, copy `Droplet.app` to `/Applications` and open it from there.
 
-Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on Hover**, **Brightness in Island**, **Launch at Login** and **Quit**.
+Droplet has no Dock icon. Look for the drop icon in the menu bar for **Open on Hover**, **Brightness in Island**, **Lock Screen Player**, **Launch at Login** and **Quit**.
 
 ## Permissions and limits
 
 - **Music control** works with Apple Music and Spotify. macOS asks once for permission to control them. Browser playback is not detected.
 - **Brightness** reads a private system framework, so it may stop working after a macOS update. Turn it off from the menu if it misbehaves.
+- **The lock-screen player** uses private window-server calls to draw above the lock screen. If a macOS update removes them, the player just won't appear.
 - The system's own volume overlay still appears alongside the island.
 - On Macs without a notch, Droplet draws a small pill at the top centre of the screen instead.
 - The app is ad-hoc signed and not notarised, so it is meant to be built locally.
 
 ## How the screenshots were made
 
-The images above are rendered by the app itself with sample data (`DROPLET_SNAPSHOT=/some/dir Droplet.app/Contents/MacOS/Droplet`) and placed on a gradient backdrop.
+The images above are rendered by the app itself with sample data (`DROPLET_SNAPSHOT=/some/dir Droplet.app/Contents/MacOS/Droplet`) and placed on a gradient backdrop. The clock in the lock-screen image is drawn in for context.
 
 ## Project layout
 
@@ -78,6 +85,7 @@ The images above are rendered by the app itself with sample data (`DROPLET_SNAPS
 | `Sources/Droplet/Services.swift` | Music, audio, brightness, power, stats, clipboard, shelf, timer |
 | `Sources/Droplet/IslandView.swift` | Notch shape, gooey bubble, collapsed states |
 | `Sources/Droplet/ExpandedView.swift` | The five tabs |
+| `Sources/Droplet/LockScreen.swift` | Lock-screen player |
 
 ## Licence
 

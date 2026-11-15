@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     let audio = AudioService()
     let brightness = BrightnessService()
+    lazy var lockPlayer = LockScreenPlayer(music: model.music)
     var lastPower = Power.read()
     var dragChange = NSPasteboard(name: .drag).changeCount
     var monitors: [Any] = []
@@ -49,11 +50,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             self?.place()
         }
 
+        _ = lockPlayer
         setupMenu()
         setupInput()
         setupSystem()
         if let dir = ProcessInfo.processInfo.environment["DROPLET_SNAPSHOT"] { runSnapshots(dir) }
     }
+
+    func lockState(_ v: Bool) { lockPlayer.debugVisible(v) }
 
     // Debug: render each island state to PNG (DROPLET_SNAPSHOT=/some/dir).
     func runSnapshots(_ dir: String) {
@@ -70,12 +74,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             ("9-hud", { m.peek = false; m.show(HUD(icon: "speaker.wave.2.fill", title: "Volume", level: 0.6), for: 5) }),
             ("10-hud-device", { m.show(HUD(icon: "airpodspro", title: "Audio", detail: "Connected", subtitle: "AirPods Pro", tint: .cyan), for: 5) }),
             ("11-home-music", { m.open(.home) }),
+            ("12-lock", { m.close(); let w = self.lockPlayer.makeWindow(); self.lockPlayer.place(w); w.orderFrontRegardless(); print("skylight:", SkyLight.raiseAboveLockScreen(w)); self.lockState(true) }),
         ]
         for (i, step) in steps.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1 + Double(i) * 2.4) {
                 step.1()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
-                    guard let v = self.panel.contentView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
+                    guard let v = (step.0 == "12-lock" ? self.lockPlayer.makeWindow().contentView : self.panel.contentView), let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
                     v.cacheDisplay(in: v.bounds, to: rep)
                     try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "\(dir)/\(step.0).png"))
                     if i == steps.count - 1 { m.timer.reset(); NSApp.terminate(nil) }
@@ -183,6 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let menu = NSMenu()
         menu.addItem(item("Open on Hover", #selector(toggleHover), on: model.openOnHover))
         menu.addItem(item("Brightness in Island", #selector(toggleBrightness), on: UserDefaults.standard.object(forKey: "brightnessHUD") as? Bool ?? true))
+        menu.addItem(item("Lock Screen Player", #selector(toggleLock), on: lockPlayer.enabled))
         menu.addItem(item("Launch at Login", #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled))
         menu.addItem(.separator())
         menu.addItem(item("Quit Droplet", #selector(quit), on: false, key: "q"))
@@ -205,6 +211,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let v = !(UserDefaults.standard.object(forKey: "brightnessHUD") as? Bool ?? true)
         UserDefaults.standard.set(v, forKey: "brightnessHUD")
         s.state = v ? .on : .off
+    }
+
+    @objc func toggleLock(_ s: NSMenuItem) {
+        lockPlayer.enabled.toggle()
+        s.state = lockPlayer.enabled ? .on : .off
     }
 
     @objc func toggleLogin(_ s: NSMenuItem) {
