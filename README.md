@@ -78,3 +78,7 @@ The images above are rendered by the app itself with sample data (`DROPLET_SNAPS
 | `Sources/Droplet/Services.swift` | Music, audio, brightness, power, stats, clipboard, shelf, timer |
 | `Sources/Droplet/IslandView.swift` | Notch shape, gooey bubble, collapsed states |
 | `Sources/Droplet/ExpandedView.swift` | The five tabs |
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).
