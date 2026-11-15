@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     let audio = AudioService()
     let brightness = BrightnessService()
-    lazy var lockPlayer = LockScreenPlayer(music: model.music)
+    lazy var lockPlayer = LockScreenPlayer(music: model.music, lyrics: model.lyrics)
     var lastPower = Power.read()
     var dragChange = NSPasteboard(name: .drag).changeCount
     var monitors: [Any] = []

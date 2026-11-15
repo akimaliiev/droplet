@@ -50,6 +50,7 @@ enum SkyLight {
 
 final class LockScreenPlayer {
     private let music: MusicService
+    private let lyrics: LyricsService
     private var window: NSPanel?
     private var backdrop: NSPanel?
     private var locked = false
@@ -67,12 +68,14 @@ final class LockScreenPlayer {
         set { UserDefaults.standard.set(newValue, forKey: "lockBackdrop"); state.backdrop = newValue }
     }
 
-    init(music: MusicService) {
+    init(music: MusicService, lyrics: LyricsService) {
         self.music = music
+        self.lyrics = lyrics
         let dnc = DistributedNotificationCenter.default()
         dnc.addObserver(forName: .init("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
             self?.locked = true
             self?.music.refreshPosition()
+            self?.loadLyrics()
             self?.refresh()
         }
         dnc.addObserver(forName: .init("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
@@ -80,6 +83,12 @@ final class LockScreenPlayer {
             self?.refresh()
         }
         music.$isPlaying.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.refresh() }.store(in: &bag)
+        // Keep lyrics in step with the song while locked.
+        music.$title.receive(on: DispatchQueue.main).sink { [weak self] _ in
+            guard let self, self.locked else { return }
+            self.loadLyrics()
+            self.music.refreshPosition()
+        }.store(in: &bag)
         // Build both windows up front so nothing is created at the moment of locking.
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             _ = self?.makeBackdrop()
@@ -92,6 +101,10 @@ final class LockScreenPlayer {
         // unlock so a paused track can be resumed from the lock screen.
         let wanted = enabled && locked && !music.title.isEmpty && (music.isPlaying || state.visible)
         if wanted { show() } else { hide() }
+    }
+
+    private func loadLyrics() {
+        lyrics.load(title: music.title, artist: music.artist, duration: music.duration)
     }
 
     func makeWindow() -> NSPanel {
@@ -124,7 +137,7 @@ final class LockScreenPlayer {
         p.ignoresMouseEvents = true   // never block the password field or Touch ID prompt
         p.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 1)
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        let host = NSHostingView(rootView: LockBackdropView(music: music, state: state))
+        let host = NSHostingView(rootView: LockBackdropView(music: music, lyrics: lyrics, state: state))
         host.safeAreaRegions = []
         p.contentView = host
         backdrop = p
@@ -229,6 +242,7 @@ struct GlassBackground: NSViewRepresentable {
 /// the system one.
 struct LockBackdropView: View {
     @ObservedObject var music: MusicService
+    @ObservedObject var lyrics: LyricsService
     @ObservedObject var state: LockState
 
     var body: some View {
@@ -257,6 +271,12 @@ struct LockBackdropView: View {
                         .id(music.title + music.artist)
                         .transition(.opacity)
 
+                    // Big, soft lyrics drifting beside the player.
+                    let side = (geo.size.width - 300) / 2
+                    LockLyricsView(music: music, lyrics: lyrics)
+                        .frame(width: side - 110, height: geo.size.height * 0.56, alignment: .leading)
+                        .position(x: 70 + (side - 110) / 2, y: geo.size.height * 0.52)
+
                     TimelineView(.periodic(from: .now, by: 5)) { c in
                         VStack(spacing: -4) {
                             Text(c.date, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
@@ -280,6 +300,37 @@ struct LockBackdropView: View {
         .animation(.easeInOut(duration: 0.7), value: music.title)
         .animation(.easeInOut(duration: 0.5), value: music.backdrop == nil)
         .ignoresSafeArea()
+    }
+}
+
+/// The current lyric line, large, with its neighbours fading into a haze.
+/// Only shown when the lyrics carry timings.
+struct LockLyricsView: View {
+    @ObservedObject var music: MusicService
+    @ObservedObject var lyrics: LyricsService
+
+    var body: some View {
+        if lyrics.status == .ready, lyrics.synced, !lyrics.lines.isEmpty {
+            TimelineView(.periodic(from: .now, by: 0.25)) { _ in
+                let cur = lyrics.index(at: music.position) ?? -1
+                let lo = max(0, cur - 1), hi = min(lyrics.lines.count - 1, cur + 2)
+                VStack(alignment: .leading, spacing: 20) {
+                    ForEach(Array(lo...max(lo, hi)), id: \.self) { i in
+                        let d = i - cur
+                        Text(lyrics.lines[i].text.isEmpty ? "···" : lyrics.lines[i].text)
+                            .font(.system(size: d == 0 ? 48 : 36, weight: .bold))
+                            .foregroundStyle(.white.opacity(d == 0 ? 0.95 : abs(d) == 1 ? 0.42 : 0.22))
+                            .shadow(color: .white.opacity(d == 0 ? 0.6 : 0.25), radius: d == 0 ? 26 : 14)
+                            .blur(radius: d == 0 ? 0.6 : abs(d) == 1 ? 3 : 6)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .transition(.opacity)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.55), value: cur)
+            }
+        }
     }
 }
 
